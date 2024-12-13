@@ -149,7 +149,7 @@ void gerador(unsigned int x, float* e, unsigned int* n_sol, float*** R, unsigned
         // O elemento referente ao índice i ainda não foi utlizado:
         memoria[i] = 0;
     }
-    // Inicializa o gerador de números aleatórios:
+    // Inicializa um gerador de números aleatórios:
     std::srand(std::time(0));
     // Gera as soluções:
     for(int i = 0; i <= int(x-1); i++)

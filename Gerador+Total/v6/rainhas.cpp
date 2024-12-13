@@ -51,7 +51,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
     } else
     {
         // Para todas as possibilidades de componentes:
-        for(int j = 0; j <= int(x-1); j++)
+        for(unsigned int j = 0; j <= x-1; j++)
         {
             // Se ainda não marcou a (j+1)-ésima possibilidade da profundidade k:
             if(!(*memoria)[k][j])
@@ -59,7 +59,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
                 // Salva a solução parcial:
                 (*S)[k] = e[j];
                 // Para todas as pronfundidades a partir da atual: 
-                for(int i = 1; i <= int(x-k-1); i++)
+                for(unsigned int i = 1; i <= x-k-1; i++)
                 {
                     // Marca j como não permitido:
                     (*memoria)[k+i][j]++;
@@ -70,7 +70,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
                         (*memoria)[k+i][j-i]++;
                     }
                     // Se j+i é um índice válido:
-                    if(j+i <= int(x-1))
+                    if(j+i <= x-1)
                     {
                         // Marca j+i como não permitido:
                         (*memoria)[k+i][j+i]++;
@@ -79,7 +79,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
                 // Gera soluções recursivamente:
                 gera(x, e, k+1, n_sol, R, S, memoria);
                 // Para todas as pronfundidades a partir da atual: 
-                for(int i = 1; i <= int(x-k-1); i++)
+                for(unsigned int i = 1; i <= x-k-1; i++)
                 {
                     // Desmarca j como não permitido:
                     (*memoria)[k+i][j]--;
@@ -90,7 +90,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
                         (*memoria)[k+i][j-i]--;
                     }
                     // Se j+i é um índice válido:
-                    if(j+i <= int(x-1))
+                    if(j+i <= x-1)
                     {
                         // Desmarca j+i de não permitido:
                         (*memoria)[k+i][j+i]--;
@@ -108,12 +108,12 @@ void gerador(unsigned int x, float* e, unsigned int* n_sol, float*** R)
     // Aloca memorizador de índices não utilizáveis para os índices alvo:   
     unsigned int** memoria = (unsigned int**)malloc(sizeof(unsigned int*)*x);
     // Para todas as componentes de uma solução:
-    for(int i = 0; i <= int(x-1); i++)
+    for(unsigned int i = 0; i <= x-1; i++)
     {
         // Aloca x possibilidades de profundidades:
         memoria[i] = (unsigned int*)malloc(sizeof(unsigned int)*x);
         // Para todas as possibilidades:
-        for(int j = 0; j <= int(x-1); j++)
+        for(unsigned int j = 0; j <= x-1; j++)
         {
             // Indica que a possibilidade não foi utilizada para a componente:
             memoria[i][j] = 0;
@@ -165,7 +165,7 @@ int main()
 
     // Segunda componente de coordenada do centro do (2, x)-tabuleiro:
     float centro2;
-    std::cout << "Entre com uma segunda componente de coordenada de centro de (2, x)-tabuleiro desejada: ";
+    std::cout << "Entre com uma segunda componente de coordenada de centro do (2, " << x << ")-tabuleiro desejada: ";
     std::cin >> centro2;
     // Gera espaço de possibilidades (em ordem ascendente) respectivo a segunda dimensão.
     float* e = intervalo(x, centro2);

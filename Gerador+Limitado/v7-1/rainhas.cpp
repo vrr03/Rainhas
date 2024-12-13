@@ -37,8 +37,14 @@ void imprime_vetor_de_float(unsigned int x, float* e)
     std::cout << "]" << std::endl;
 }
 
-void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float*** R, float** S, unsigned int*** mem_contagens, std::vector<std::set<unsigned int>>& mem_indices)
+void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float*** R, float** S, unsigned int*** mem_contagens, std::vector<std::set<unsigned int>>& mem_indices, unsigned int n_des)
 {
+    // Se encontrou a quantidade de soluções desejada:
+    if((*n_sol) >= n_des)
+    {
+        // Retorna:
+        return;
+    }
     // Se posicionou todas as rainhas completando todos os níveis de profundidade:
     if(k == x)
     {
@@ -113,7 +119,7 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
                 }
             }
             // Gera soluções recursivamente:
-            gera(x, e, k+1, n_sol, R, S, mem_contagens, mem_indices);
+            gera(x, e, k+1, n_sol, R, S, mem_contagens, mem_indices, n_des);
             // Para todas as pronfundidades a partir da atual: 
             for(unsigned int i = 1; i <= x-k-1; i++)
             {
@@ -166,8 +172,14 @@ void gera(unsigned int x, float* e, unsigned int k, unsigned int* n_sol, float**
     }
 }
 
-void gerador(unsigned int x, float* e, unsigned int* n_sol, float*** R)
+void gerador(unsigned int x, float* e, unsigned int* n_sol, float*** R, unsigned int n_des)
 {
+    // Se não deseja solução:
+    if(n_des == 0)
+    {
+        // Retorna:
+        return;
+    }
     // Aloca espaço para uma solução:
     float* S = (float*)malloc(sizeof(float)*x);
     // Aloca memorizador de índices não utilizáveis para os índices alvo:   
@@ -195,9 +207,14 @@ void gerador(unsigned int x, float* e, unsigned int* n_sol, float*** R)
     // Cria um vetor de conjuntos, todos inicializados com o mesmo conjunto:
     std::vector<std::set<unsigned int>> mem_indices(x, indices_de_ordem);
     // Gera as soluções:
-    gera(x, e, 0, n_sol, R, &S, &mem_contagens, mem_indices);
+    gera(x, e, 0, n_sol, R, &S, &mem_contagens, mem_indices, n_des);
     // Libera a memória alocada:
     free(S);
+    for(unsigned int i = 0; i <= x-1; i++)
+    {
+        free(mem_contagens[i]);
+    }
+    free(mem_contagens);
 }
 
 #include <cmath> // abs
@@ -247,8 +264,12 @@ int main()
     float** R = (float**)malloc(sizeof(float*));
     // Número de soluções:
     unsigned int n_sol = 0;
+    // Quantidade de soluções desejadas:
+    unsigned int n_des;
+    std::cout << "Entre com um número de soluções desejado: ";
+    std::cin >> n_des;
     // Gera as soluções:
-    gerador(x, e, &n_sol, &R);
+    gerador(x, e, &n_sol, &R, n_des);
     // Para todas as soluções:
     for(unsigned int i = 0; i < n_sol; i++)
     {
