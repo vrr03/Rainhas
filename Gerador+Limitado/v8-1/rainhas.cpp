@@ -1,17 +1,14 @@
 // Para compilar:
-// g++ rainhas.cpp -o rainhas.exe -Wall
+// g++ rainhas.cpp -o rainhas.exe -Wall -Wl,-z,stack-size=1048576
+// Observação: -Wl,-z,stack-size=1048576 ajusta a stack para 1 MB.
+// Para 1 GB, use size=1073741824.
+// g++ rainhas.cpp -o rainhas.exe -Wall -Wl,-z,stack-size=1073741824
 
 #include <iostream> 
 #include <cstdlib>
 #include <set>
 #include <vector>
 #include <stack>
-
-// Funções para debug:
-void imprime_vetor_de_naturais(unsigned int x, unsigned int* S);
-void imprime_conjunto_de_naturais(std::set<unsigned int>& C);
-void imprime_vetor_de_conjuntos_de_naturais(unsigned int x, std::vector<std::set<unsigned int>>& E);
-void imprime_matriz_quadrada_de_conjuntos_de_naturais(unsigned int x, std::vector<std::vector<std::set<unsigned int>>>& mem);
 
 // x        : número de possibilidades de valores para as
 //            coordenadas de uma casa de um (2, x)-tabuleiro;
@@ -28,7 +25,7 @@ void salva_solucao(unsigned int x, unsigned int* n_sol, unsigned int*** R,
     if(*R == NULL)
     {
         std::cerr << "Erro de alocação de memória." << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     (*R)[(*n_sol)-1] = (unsigned int*)malloc(sizeof(unsigned int)*x); 
     for(unsigned int i = 0; i <= x-1; i++)
@@ -103,9 +100,17 @@ typedef struct Estado
 
 // x        : número de possibilidades de valor de coordenada de dimensão de um espaço;
 // n_sol    : número de soluções encontradas;
-// R        : soluções encontradas.
-void gera_solucoes(unsigned int x, unsigned int* n_sol, unsigned int*** R)
+// R        : soluções encontradas;
+// n_des    : número de soluções desejadas.
+void gera_solucoes(unsigned int x, unsigned int* n_sol, unsigned int*** R, unsigned int n_des)
 {
+        // Se não deseja solução:
+    if(!n_des)
+    {
+        // Retorna:
+        return;
+    }
+
     // Conjunto de possibilidades de coordenadas de posicionamento das rainhas:
     std::set<unsigned int> omega;
 
@@ -156,6 +161,13 @@ void gera_solucoes(unsigned int x, unsigned int* n_sol, unsigned int*** R)
         {
             // Completou uma solução:
             salva_solucao(x, n_sol, R, mem);
+
+            // Se encontrou o número de soluções desejado:
+            if(*n_sol == n_des)
+            {
+                // Retorna.
+                return;
+            }
 
             // Se há próximo estado:
             if(!(pilha.empty()))
@@ -258,34 +270,37 @@ int main()
     std::cout << "Entre com um número de possibilidades por dimensão desejado: ";
     std::cin >> x;
     
-    // Se número nula:
+    // Se número nulo:
     if(!x)
     {
-        std::cout << "Erro. O número de possibilidades deve ser um natural não nulo." << std::endl;
-        return 0;
+        std::cerr << "Erro. O número de possibilidades deve ser um natural não nulo." << std::endl;
+        exit(EXIT_FAILURE);
     }
     
+    // Quantidade de soluções desejadas:
+    unsigned int n_des;
+    std::cout << "Entre com um número de soluções desejado: ";
+    std::cin >> n_des;
+
     // Conjunto de soluções:
     unsigned int** R = (unsigned int**)malloc(sizeof(unsigned int*));
     // Número de soluções:
     unsigned int n_sol = 0;
     // Gera as soluções:
-    gera_solucoes(x, &n_sol, &R);
-    // Para todas as soluções:
+    gera_solucoes(x, &n_sol, &R, n_des);
+    // Número de falsas soluções:
+    unsigned int n_f_sol = 0;
+    // Para todas as supostas soluções:
     for(unsigned int i = 0; i < n_sol; i++)
     {
         // Se não for de fato solução:
         if(!eh_solucao(x, R[i]))
         {
-            // Imprime mensagem de erro:
-            // std::cout << "Erro. A seguinte solução é inválida." << std::endl;
-            // Imprime soluções inválidas:
-            imprime_vetor_de_naturais(x, R[i]);
+            n_f_sol++;
         }
-        // Imprime a (i+1)-ésima solução encontrada:
-        // imprime_vetor_de_naturais(x, R[i]);
     }
-    std::cout << "Número de supostas soluções encontradas do problema (2, " << x << ")-Rainhas Padrão: " << n_sol << std::endl;
+    std::cout << "Número de sequências geradas que não são solução do problema: " << n_f_sol << std::endl;
+    std::cout << "Número de soluções encontradas para o problema (2, " << x << ")-Rainhas Padrão: " << n_sol-n_f_sol << std::endl;
 
     // Libera a memória alocada:
     for(unsigned int i = 0; i < n_sol; i++)
@@ -295,104 +310,4 @@ int main()
     }
     free(R);
     return 0;
-}
-
-// x: número de elementos;
-// S: vetor de naturais a ser imprimido.
-void imprime_vetor_de_naturais(unsigned int x, unsigned int* S)
-{
-    // Abre vetor:
-    std::cout << "[";
-
-    // Para todos os elementos exceto o último:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        // Imprime elemento e separador:
-        std::cout << S[i] << ", ";
-    }
-    // Imprime o último elemento:
-    if(x) std::cout << S[x-1];
-    
-    // Fecha vetor:
-    std::cout << "]" << std::endl;
-}
-
-// C: conjunto de números naturais a ser imprimido.
-void imprime_conjunto_de_naturais(std::set<unsigned int>& C)
-{
-    // Abre conjunto:
-    std::cout << "{";
-
-    // Se o conjunto não está vazio:
-    if(!C.empty())
-    {
-        // Inicia iterador:
-        auto it = C.begin();
-        // Para todos os elementos, exceto o último:
-        for(auto proximo_it = std::next(it); proximo_it != C.end(); it++, proximo_it++)
-        {
-            // Imprime com separador:
-            std::cout << *it << ", ";
-        }
-        // Imprime o último sem separador:
-        std::cout << *it;
-    }
-
-    // Fecha conjunto:
-    std::cout << "}";
-}
-
-// x: número de conjuntos de naturais;
-// E: vetor de conjuntos de naturais a ser imprimido.
-void imprime_vetor_de_conjuntos_de_naturais(unsigned int x, std::vector<std::set<unsigned int>>& E)
-{
-    // Abre vetor:
-    std::cout << "[";
-
-    // Para todos os conjuntos:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        // Imprime conjunto:
-        imprime_conjunto_de_naturais(E[i]);
-        // Imprime separador:
-        std::cout << ", ";
-    }
-
-    // Se tem pelo menos um conjunto:
-    if(x)
-    {
-        // Imprime conjunto:
-        imprime_conjunto_de_naturais(E[x-1]);
-    }
-
-    // Fecha vetor:
-    std::cout << "]";
-}
-
-// x    : número de vetores de conjuntos de naturais;
-// mem  : matriz de conjuntos de naturais a ser imprimida.
-void imprime_matriz_quadrada_de_conjuntos_de_naturais(unsigned int x, std::vector<std::vector<std::set<unsigned int>>>& mem)
-{
-    // Abre matriz:
-    std::cout << "[";
-
-    // Para todos os vetores de conjuntos:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        // Imprime vetor de conjuntos:
-        imprime_vetor_de_conjuntos_de_naturais(x, mem[i]);
-        // Imprime separador:
-        std::cout << "," << std::endl;
-    }
-
-    // Se tem pelo menos um vetor de conjuntos:
-    if(x)
-    {
-        // Imprime vetor de conjuntos:
-        imprime_vetor_de_conjuntos_de_naturais(x, mem[x-1]);
-    }
-
-    // Fecha matriz:
-    std::cout << "]" << std::endl;
-
 }
