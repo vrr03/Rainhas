@@ -1,10 +1,10 @@
 // Para compilar:
-// g++ contagem_de_exclusoes.cpp -o contagem_de_exclusoes.exe -Wall
+// g++ areas.cpp -o areas.exe -Wall
 
 #include <cmath> // abs
 #include <cstdlib>
+#include <iomanip> // fixed e setprecision
 #include <iostream>
-#include <queue>
 #include <set>
 #include <stack>
 #include <vector>
@@ -54,189 +54,157 @@ void imprime_vetor_de_naturais(unsigned int x, unsigned int* S)
     std::cout << "]";
 }
 
-// x: número de elementos;
-// S: vetor de naturais a ser imprimido.
-void imprime_vetor_de_naturais(unsigned int x, std::vector<unsigned int>& S)
+// x:           número de vértices;
+// poligono:    vértices de um polígono (convexo ou não) sem entrelaçamentos.
+float area(unsigned int x, std::vector<std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>>& poligono)
 {
-    // Abre vetor:
-    std::cout << "[";
-
-    // Para todos os elementos exceto o último:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        // Imprime elemento e separador:
-        std::cout << S[i] << ", ";
-    }
-    // Imprime o último elemento:
-    if(x) std::cout << S[x-1];
+    // Inicia soma com zero:
+    float soma = 0;
     
-    // Fecha vetor:
-    std::cout << "]";
+    // Para todo par de vértices sequentes em loop:
+    for(unsigned int i = 0; i < x; i++)
+    {
+        // Calcula índice do próximo vértice:
+        unsigned int prox = (i+1)%x;
+        // Acumula a diferença do produto cruzado:
+        soma += float(poligono[i].second.first*poligono[prox].second.second)-float(poligono[i].second.second*poligono[prox].second.first);
+    }
+
+    // Retorna a área pela fórmula de Shoelace:
+    return (std::fabs(soma)/2.0);
 }
 
-#include <string>
+#include <algorithm>
+#include <utility>
 
-void desenfilera_exclusao(unsigned int i, std::string str1, std::string str2,
-                            std::vector<std::queue<bool>>& conf)
+// V:           vértice a ser inserido;
+// poligono:    vértices do polígono atual.
+void insere_vertice_ordenado_em_sentido_antihorario(std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>& V,
+                                        std::vector<std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>>& poligono)
 {
-    // Se exclusão efetiva:
-    if(conf[i].front())
-    {
-        // Imprime a primeira string:
-        std::cout << str1;
-    } else
-    { // Senão:
-        // Imprime a segunda string:
-        std::cout << str2;
-    }
-    // Retira exclusão da fila:
-    conf[i].pop();
+    // Encontra a posição do par a ser inserido por comparação de ordem crescente de ângulo e decrescente de raio: 
+    auto it = std::lower_bound(poligono.begin(), poligono.end(), V,
+        [](const std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>& a,
+           const std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>& b)
+           {
+               if(a.first.second != b.first.second)
+               {
+                   return a.first.second < b.first.second; 
+               }
+               return a.first.first > b.first.first;
+           });
+
+    // Insere o novo par na posição encontrada:
+    poligono.insert(it, V);
 }
 
-void imprime_os_padroes_das_exclusoes(unsigned int x, std::vector<std::queue<bool>>& conf)
+// O: coordenadas da origem de um sistema cartesiano;  
+// P: coordenadas cartesianas de um ponto no sistema.
+std::pair<float, float> transforma_em_coordenadas_polares(std::pair<float, float> O, std::pair<float, float> P)
 {
-    // Abre o vetor de padrões:
-    std::cout << "[";
+    // Calcula a distância entre a origem e o ponto:
+    // (a norma do vetor com segmento representante OP)
+    float r = std::sqrt(std::pow(P.first-O.first, 2)+std::pow(P.second-O.second, 2));
 
-    // Para todos os padrões exceto o último:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        desenfilera_exclusao(i, "O, ", "-, ", conf);
-    }
+    // Componente de ângulo:
+    float angulo;
 
-    // Se tem padrão:
-    if(x)
-    {
-        desenfilera_exclusao(x-1, "O", "-", conf);
-        // Imprime quebra de linha:
-        std::cout << std::endl;
-    }
-
-    // Para todas as exclusões de um padrão exceto a primeira e a última:
-    for(unsigned int k = 1; int(k) < int(2*(x-1)-1); k++)
-    {
-        // Para todos os padrões exceto o último:
-        for(unsigned int i = 0; i < x-1; i++)
-        {
-            desenfilera_exclusao(i, " O,", " -,", conf);
+    if(P.first > O.first)
+    { // Se o ponto está no 1º ou 4º quadrante ou sobre o eixo x:
+        if(P.second > O.second)
+        { // Se o ponto está no 1° quadrante:
+            // x = r*cos(t) -> t = arccos(x/r):
+            // (arccos -> [0, pi]).
+            angulo = std::acos((P.first-O.first)/r);
+            // y = r*sen(t) -> t = arcsen(y/r):
+            // (arcsen -> [-pi/2, pi/2]).
+            // angulo = std::asin((P.second-O.second)/r);
+            // t = arctan(y/x):
+            // (arctan -> [-pi/2, pi/2]).
+            // angulo = std::atan((P.second-O.second)/(P.first-O.first));
+        } else if(P.second < O.second)
+        { // Senão, se o ponto está no 4° quadrante:
+            angulo = 2*M_PI-std::acos((P.first-O.first)/r);
+            // angulo = 2*M_PI+std::asin((P.second-O.second)/r);
+            // angulo = 2*M_PI+std::atan((P.second-O.second)/(P.first-O.first));
+        } else
+        { // Senão, o ponto está sobre o eixo x (entre o 1º e o 4º quadrante):
+            // (O ponto está a direita da origem).
+            angulo = 0;
         }
-
-        desenfilera_exclusao(x-1, " O", " -", conf);
-        // Imprime quebra de linha:
-        std::cout << std::endl;
-    }
-
-    // Para todos os padrões exceto o último:
-    for(unsigned int i = 0; i < x-1; i++)
-    {
-        desenfilera_exclusao(i, " O,", " -,", conf);
-    }
-
-    // Se tem padrão:
-    if(x)
-    {
-        desenfilera_exclusao(x-1, " O", " -", conf);
-    }
-
-    // Fecha o vetor de padrões:
-    std::cout << "]";
-}
-
-void valida_exclusao_a_direita_do_limite_a_esquerda(unsigned int k, unsigned int i, unsigned int lim,
-        unsigned int* S, std::vector<unsigned int>& cont, std::vector<std::queue<bool>>& conf, unsigned int* total)
-{
-    // Se gera exclusão a esquerda do limite a esquerda:
-    if(S[i] < lim)
-    {
-        // Não conta a exclusão:
-        conf[k].push(false);
-    } else
-    { // Senão:
-        // Conta a exclusão:
-        cont[k]++;
-        conf[k].push(true);
-        (*total)++;
-    }
-}
-
-void valida_exclusao_a_esquerda_do_limite_a_direita(unsigned int k, unsigned int i, unsigned int lim,
-        unsigned int* S, std::vector<unsigned int>& cont, std::vector<std::queue<bool>>& conf, unsigned int* total)
-{
-    // Se gera exclusão a direita do limite a direita:
-    if(S[i] > lim)
-    {
-        // Não conta a exclusão:
-        conf[k].push(false);
-    } else
-    {
-        // Conta a exclusão:
-        cont[k]++;
-        conf[k].push(true);
-        (*total)++;
-    }
-}
-
-void conta_exclusoes(unsigned int x, unsigned int* S, std::set<unsigned int>& somas_distintas)
-{
-    // Contador de exclusões de possibilidades:
-    std::vector<unsigned int> cont(x, 0);
-    // Vetor de filas de configuração de atividade das restrições:
-    std::vector<std::queue<bool>> conf(x);
-
-    unsigned int total = 0;
-
-    // Se a solução é do problema trivial:
-    if(x == 1)
-    {
-        // Não existe par de rainha para gerar restrição.
-        conf[0].push(false);
-        conf[0].push(false);
-    }
-
-    // Para todas as rainhas posteriores a primeira:
-    for(unsigned int i = 1; i <= x-1; i++)
-    {   
-        valida_exclusao_a_direita_do_limite_a_esquerda(0, i, i-0, S, cont, conf, &total);
-        valida_exclusao_a_esquerda_do_limite_a_direita(0, i, (x-1)-(i-0), S, cont, conf, &total);
-    }
-    // Para todas as rainhas posteriores a primeira e anteriores a última:
-    for(unsigned int k = 1; int(k) <= int(x-2); k++)
-    {
-        // Para todas as rainhas anteriores a (k+1)-ésima:
-        for(unsigned int i = 0; i <= k-1; i++)
-        {
-            valida_exclusao_a_direita_do_limite_a_esquerda(k, i, k-i, S, cont, conf, &total);
-            valida_exclusao_a_esquerda_do_limite_a_direita(k, i, (x-1)-(k-i), S, cont, conf, &total);
+    } else if(P.first < O.first)
+    { // Senão, se o ponto está no 2° ou 3° quadrante ou sobre o eixo x:
+        if(P.second > O.second)
+        { // Se o ponto está no 2° quadrante:
+            angulo = std::acos((P.first-O.first)/r);
+            // angulo = M_PI-std::asin((P.second-O.second)/r);
+            // angulo = M_PI+std::atan((P.second-O.second)/(P.first-O.first));
+        } else if(P.second < O.second)
+        { // Senão, se o ponto está no 3° quadrante:
+            angulo = 2*M_PI-std::acos((P.first-O.first)/r);
+            // angulo = M_PI-std::asin((P.second-O.second)/r);
+            // angulo = M_PI+std::atan((P.second-O.second)/(P.first-O.first));
+        } else
+        { // Senão, o ponto está sobre o eixo x (entre o 2º e o 3º quadrante):
+            // (O ponto está a esquerda da origem).
+            angulo = M_PI;
         }
-        // Para todas as rainhas posteriores a (k+1)-ésima:
-        for(unsigned int i = k+1; i <= x-1; i++)
-        {
-            valida_exclusao_a_direita_do_limite_a_esquerda(k, i, i-k, S, cont, conf, &total);
-            valida_exclusao_a_esquerda_do_limite_a_direita(k, i, (x-1)-(i-k), S, cont, conf, &total);
+    } else
+    { // Senão, se o ponto está sobre o eixo y:
+        if(P.second > O.second)
+        { // Se o ponto está entre o 1° e o 2° quadrante:
+            // (O ponto forma ângulo de 90° com a origem).
+            angulo = M_PI/2.;
+        } else if(P.second < O.second)
+        { // Senão, se o ponto está entre o 3° e o 4° quadrante:
+            // (O ponto forma ângulo de 270° com a origem).
+            angulo = 3*M_PI/2.;
+        } else
+        { // Senão, o ponto está sobre o eixo x e sobre o eixo y:
+            // (O ponto coincide com a origem).
+            angulo = 0;
         }
     }
-    // Para todas as rainhas anteriores a última:
-    for(unsigned int i = 0; int(i) <= int(x-2); i++)
+
+    // Retorna o par de coordenadas polares:
+    return {r, angulo};
+}
+
+// x: número de vértices;
+// S: solução de um problema (2, x)-Rainhas.
+std::vector<std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>> ordena_vertices(unsigned int x, unsigned int* S)
+{
+    // Cria vetor de pares de ângulo com pares de coordenadas para representar
+    // o polígono convexo formado por uma solução do problema (2, x)-Rainhas:
+    std::vector<std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>> poligono;
+
+    // Coordenadas do centro do tabuleiro:
+    float C = float(x-1)/2.0;
+
+    // Para todas as rainhas:
+    for(unsigned int k = 0; k < x; k++)
     {
-        valida_exclusao_a_direita_do_limite_a_esquerda(x-1, i, (x-1)-i, S, cont, conf, &total);
-        valida_exclusao_a_esquerda_do_limite_a_direita(x-1, i, i, S, cont, conf, &total); // lim = (x-1)-((x-1)-i) = i
+        // Coordenadas polares da (k+1)-ésima rainha: 
+        auto P = transforma_em_coordenadas_polares({C, C}, {float(k), float(S[k])});
+
+        // Salva par de coordenadas da rainha nos dois sistemas de coordenadas: 
+        std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>> R = {P, {k, S[k]}};
+        
+        // Insere o par em ordem crescente de ângulo e decrescente de raio (se mesmo ângulo):
+        insere_vertice_ordenado_em_sentido_antihorario(R, poligono);
     }
 
-    std::cout << std::endl;
-    imprime_vetor_de_naturais(x, S);
-    std::cout << std::endl;
-    std::cout << " --> ";
-    std::cout << std::endl;
-    imprime_vetor_de_naturais(x, cont);
-    std::cout << std::endl;
-    imprime_os_padroes_das_exclusoes(x, conf);
-    std::cout << std::endl;
-    std::cout << " (soma = " << total << ")";
-    std::cout << std::endl;
-    std::cout << std::endl;
+    // Retorna os vértices ordenados:
+    return poligono;
+}
 
-    // Insere o número de restrições efetivas:
-    somas_distintas.insert(total);
+void imprime_vetor_de_pares(const std::vector<std::pair<std::pair<float, float>, std::pair<unsigned int, unsigned int>>>& vetor)
+{
+    for(const auto& par : vetor)
+    {
+        std::cout << "(" << par.second.first << ", " << par.second.second << ") <---> ";
+        std::cout << "(" << par.first.first << ", " << par.first.second*(180.0/M_PI) << "°)\n";
+    }
 }
 
 int main(int argc, char const *argv[])
@@ -261,8 +229,8 @@ int main(int argc, char const *argv[])
     gera_solucoes(x, &n_sol, &R);
     // Número de falsas soluções:
     unsigned int n_f_sol = 0;
-    // Valores de soma distintos relativos a contagem de restrições de coordenadas pertencentes ao conjunto de possibilidades:
-    std::set<unsigned int> somas_distintas;
+    // Áreas distintas das configurações de polígonos a partir das soluções:
+    std::set<float> areas_distintas;
     // Para todas as supostas soluções:
     for(unsigned int i = 0; i < n_sol; i++)
     {
@@ -272,12 +240,25 @@ int main(int argc, char const *argv[])
             n_f_sol++;
         } else
         { // Senão:
-            conta_exclusoes(x, R[i], somas_distintas);
+            // Imprime a solução:
+            imprime_vetor_de_naturais(x, R[i]);
+            std::cout << " --> ";
+            std::cout << std::endl;
+            
+            // Configura o polígono relativo a solução:
+            auto poligono = ordena_vertices(x, R[i]);
+            imprime_vetor_de_pares(poligono);
+            // Calcula a área:
+            float A = area(x, poligono);
+            std::cout << "Área = " << std::fixed << std::setprecision(2) << A;
+            std::cout << std::endl;
+            // Insere a área no conjunto se ainda não foi inserida:
+            areas_distintas.insert(A);
         }
     }
     std::cout << "Número de sequências geradas que não são solução do problema: " << n_f_sol << std::endl;
     std::cout << "Número de soluções encontradas para o problema (2, " << x << ")-Rainhas Padrão: " << n_sol-n_f_sol << std::endl;
-    std::cout << "Número de somas distintas: " << somas_distintas.size() << std::endl;
+    std::cout << "Número de áreas distintas: " << areas_distintas.size() << std::endl;
 
     // Libera a memória alocada:
     for(unsigned int i = 0; i < n_sol; i++)
